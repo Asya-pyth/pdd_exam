@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ПДД Билеты — Экзамен с персонажами</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #0f0f1a;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background 0.5s, color 0.5s;
+        }
+        .app {
+            max-width: 1000px;
+            width: 100%;
+            background: rgba(30, 30, 50, 0.92);
+            backdrop-filter: blur(6px);
+            border-radius: 36px;
+            padding: 28px 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.5s, border 0.5s;
+        }
+        .theme-vasya { background: #2d2a1e; }
+        .theme-vasya .app { background: #3a3324; border-color: #8b7a4b; }
+        .theme-vasya .character-card { background: #4a402b; }
+        .theme-vasya button { background: #6b5d3a; color: #f5e6c4; }
+        .theme-vasya button:hover { background: #8a784e; }
+        .theme-vasya .comment-bubble { background: rgba(255, 220, 150, 0.08); border-color: #8b7a4b; }
+        .theme-vasya .comment-bubble::before { border-right-color: rgba(255, 220, 150, 0.15); }
+
+        .theme-allochka { background: #2a1a2a; }
+        .theme-allochka .app { background: #3d2440; border-color: #c77da0; }
+        .theme-allochka .character-card { background: #552f4a; }
+        .theme-allochka button { background: #8a4d7a; color: #fae0f0; }
+        .theme-allochka button:hover { background: #b06a9a; }
+        .theme-allochka .comment-bubble { background: rgba(255, 150, 200, 0.08); border-color: #c77da0; }
+        .theme-allochka .comment-bubble::before { border-right-color: rgba(255, 150, 200, 0.15); }
+
+        .theme-boris { background: #141c2a; }
+        .theme-boris .app { background: #1e2a3a; border-color: #4a6a8a; }
+        .theme-boris .character-card { background: #2a3a4e; }
+        .theme-boris button { background: #3a5a7a; color: #d0e4f5; }
+        .theme-boris button:hover { background: #4e7a9e; }
+        .theme-boris .comment-bubble { background: rgba(100, 150, 200, 0.08); border-color: #4a6a8a; }
+        .theme-boris .comment-bubble::before { border-right-color: rgba(100, 150, 200, 0.15); }
+
+        .character-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin: 20px 0 16px;
+        }
+        .character-card {
+            flex: 1 1 200px;
+            max-width: 240px;
+            background: #2a2a40;
+            border-radius: 24px;
+            padding: 20px 16px 18px;
+            text-align: center;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 0 rgba(0, 0, 0, 0.3);
+        }
+        .character-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 30px rgba(0, 0, 0, 0.5);
+        }
+        .character-card.selected {
+            border-color: #f0c060;
+            background: #3a3a5a;
+            transform: scale(1.03);
+        }
+        .character-card .avatar {
+            width: 100%;
+            height: 260px;
+            margin: 0 auto 10px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .character-card .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s;
+        }
+        .character-card:hover .avatar img { transform: scale(1.02); }
+        .character-card .name { font-weight: 700; font-size: 1.2rem; }
+        .character-card .desc { font-size: 0.8rem; opacity: 0.6; margin-top: 4px; }
+
+        .carousel-wrapper {
+            position: relative;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+        .carousel-track {
+            display: flex;
+            gap: 16px;
+            transition: transform 0.4s ease;
+            padding: 4px 0;
+        }
+        .carousel-track .character-card { flex: 0 0 180px; min-width: 160px; padding: 14px 10px; }
+        .carousel-track .character-card .avatar { height: 200px; }
+        .carousel-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.4rem;
+            color: #fff;
+            cursor: pointer;
+            z-index: 10;
+            transition: 0.2s;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        .carousel-btn:hover { background: rgba(255, 255, 255, 0.15); }
+        .carousel-btn.prev { left: 4px; }
+        .carousel-btn.next { right: 4px; }
+        .carousel-btn.show { display: flex; }
+
+        .ticket-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+            gap: 6px;
+            margin: 10px 0 8px;
+        }
+        .ticket-btn {
+            background: #2a2a44;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 0;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #ccc;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 4px 0 #16161f;
+        }
+        .ticket-btn:hover { background: #3e3e66; transform: translateY(-2px); }
+        .ticket-btn.solved { background: #2a5a3a; color: #a0e0b0; }
+
+        .test-layout {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+        .char-side {
+            flex: 0 0 240px;
+            text-align: center;
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+        }
+        .char-side img {
+            width: 100%;
+            max-height: 480px;
+            object-fit: contain;
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: opacity 0.3s;
+        }
+        .char-side .name { margin-top: 8px; font-weight: 700; font-size: 1.1rem; opacity: 0.7; }
+        .content { flex: 1; min-width: 0; }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .q-number { font-weight: 300; opacity: 0.6; font-size: 0.9rem; }
+        .timer-wrap {
+            background: #1a1a2e;
+            padding: 4px 16px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .timer-wrap.warning { color: #f77; background: #3a1a1a; }
+        .progress-bar {
+            height: 5px;
+            background: #2a2a44;
+            border-radius: 12px;
+            margin: 8px 0 14px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #6a8aff, #a78aff);
+            border-radius: 12px;
+            transition: width 0.3s;
+        }
+        .question-image {
+            text-align: center;
+            margin: 6px 0 10px;
+            min-height: 40px;
+        }
+        .question-image img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .question-image img.loaded { opacity: 1; }
+        .question-image .loading-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 60px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.9rem;
+        }
+
+        .question-text {
+            font-size: 1.15rem;
+            line-height: 1.5;
+            margin: 8px 0 14px;
+            padding: 8px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 10px 0 14px;
+        }
+        .option-btn {
+            background: #1e1e34;
+            border: 2px solid #2a2a4a;
+            border-radius: 14px;
+            padding: 14px 16px;
+            font-size: 0.95rem;
+            text-align: left;
+            color: #ddd;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 3px 0 #0f0f1a;
+        }
+        .option-btn:hover { background: #2e2e50; }
+        .option-btn.correct { border-color: #4caf50; background: #1e4a2a; color: #b0f0b0; }
+        .option-btn.wrong { border-color: #f55; background: #4a1e1e; color: #fbb; }
+        .option-btn.disabled { pointer-events: none; opacity: 0.6; }
+
+        .comment-wrapper {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin: 14px 0 12px;
+            padding: 4px 0;
+            animation: fadeSlideIn 0.4s ease;
+        }
+        .comment-avatar {
+            flex-shrink: 0;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.3);
+        }
+        .comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .comment-bubble {
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(4px);
+            padding: 12px 18px;
+            border-radius: 18px 18px 18px 4px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            flex: 1;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            transition: border-color 0.3s, background 0.3s;
+        }
+        .comment-bubble::before {
+            content: '';
+            position: absolute;
+            left: -10px;
+            top: 16px;
+            border: 6px solid transparent;
+            border-right-color: rgba(255, 255, 255, 0.06);
+            border-left: 0;
+            transition: border-right-color 0.3s;
+        }
+        .comment-bubble .who {
+            font-weight: 700;
+            font-size: 0.8rem;
+            opacity: 0.6;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .comment-bubble .text { font-size: 0.95rem; line-height: 1.5; font-style: italic; }
+        @keyframes fadeSlideIn {
+            0% { opacity: 0; transform: translateY(8px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .result-score { font-size: 2.8rem; font-weight: 800; text-align: center; margin: 2px 0; }
+        .result-msg {
+            text-align: center;
+            font-size: 1.05rem;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 30px;
+            padding: 14px 12px;
+            margin: 8px 0 12px;
+            border: 1px dashed rgba(255, 255, 255, 0.06);
+        }
+        .error-list {
+            margin: 10px 0 8px;
+            max-height: 320px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            padding: 10px 12px;
+        }
+        .error-item {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            padding: 10px 0;
+        }
+        .error-item .q { font-weight: 600; }
+        .error-item .your { color: #f77; }
+        .error-item .right { color: #7d7; }
+        .error-item .advice { opacity: 0.8; font-style: italic; margin-top: 4px; font-size: 0.85rem; }
+
+        .btn-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 12px 0 2px;
+        }
+        button {
+            background: #4a4a7a;
+            border: none;
+            border-radius: 40px;
+            padding: 12px 28px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #fff;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 5px 0 #1f1f33;
+            flex: 1 1 auto;
+            min-width: 110px;
+        }
+        button:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        button:active { transform: translateY(4px); box-shadow: 0 1px 0 #1f1f33; }
+        button.secondary { background: #3a3a55; box-shadow: 0 5px 0 #1f1f2a; }
+        button.secondary:hover { background: #4e4e70; }
+        .hidden { display: none !important; }
+
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 30px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 0.85rem;
+        }
+        .stats span { opacity: 0.6; }
+
+        @media (max-width: 820px) {
+            .char-side { flex: 0 0 160px; }
+            .char-side img { max-height: 340px; }
+            .character-card { flex: 1 1 160px; max-width: 200px; }
+            .character-card .avatar { height: 200px; }
+        }
+        @media (max-width: 700px) {
+            .test-layout { flex-direction: column; align-items: center; }
+            .char-side { flex: 0 0 auto; width: 140px; position: static; }
+            .char-side img { max-height: 220px; }
+            .character-card { flex: 1 1 140px; max-width: 170px; }
+            .character-card .avatar { height: 170px; }
+            .app { padding: 16px 12px; }
+            .question-text { font-size: 1rem; }
+            .option-btn { padding: 10px 12px; font-size: 0.88rem; }
+            .ticket-grid { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 4px; }
+            .result-score { font-size: 2rem; }
+            button { padding: 8px 16px; min-width: 70px; font-size: 0.85rem; }
+            .question-image img { max-height: 130px; }
+            .comment-avatar { width: 44px; height: 44px; }
+            .comment-bubble { padding: 8px 12px; }
+            .comment-bubble .text { font-size: 0.85rem; }
+            .carousel-btn { display: flex !important; }
+            .character-grid.desktop { display: none; }
+        }
+        @media (min-width: 701px) { .carousel-wrapper { display: none; } }
+        @media (max-width: 430px) {
+            .char-side { width: 100px; }
+            .char-side img { max-height: 160px; }
+            .character-card { flex: 0 0 130px; min-width: 110px; }
+            .character-card .avatar { height: 130px; }
+            .carousel-track .character-card .avatar { height: 140px; }
+        }
+
+        .loader {
+            text-align: center;
+            padding: 30px 0 16px;
+            font-size: 1.6rem;
+            opacity: 0.6;
+        }
+        .loader span { display: inline-block; animation: pulse 1.2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.2; transform: scale(0.95); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app" id="app">
+        <div id="loader" class="loader"><span>🚦</span> Загружаем билеты...</div>
+        <div id="mainScreen" class="hidden">
+            <h1 style="text-align:center; font-weight:300; letter-spacing:1px; font-size:1.6rem;">🚗 Билеты ПДД</h1>
+            <p style="text-align:center; opacity:0.6; margin-bottom:6px; font-size:0.9rem;">Выбери наставника</p>
+            <div class="character-grid desktop" id="charGrid"></div>
+            <div class="carousel-wrapper" id="carouselWrapper">
+                <button class="carousel-btn prev" id="carouselPrev">‹</button>
+                <div class="carousel-track" id="carouselTrack"></div>
+                <button class="carousel-btn next" id="carouselNext">›</button>
+            </div>
+            <div style="margin:8px 0 2px;">
+                <p style="opacity:0.6; font-size:0.85rem;">Выбери билет:</p>
+                <div class="ticket-grid" id="ticketGrid"></div>
+            </div>
+            <div class="stats" id="statsBlock">
+                <span>📊 Решено: <b id="statSolved">0</b></span>
+                <span>🎯 Средний балл: <b id="statAvg">—</b></span>
+                <span>👤 Персонаж: <b id="statChar">—</b></span>
+            </div>
+        </div>
+        <div id="testScreen" class="hidden">
+            <div class="test-layout">
+                <div class="char-side" id="charSide">
+                    <img id="charImage" src="" alt="Персонаж" />
+                    <div class="name" id="charName">Персонаж</div>
+                </div>
+                <div class="content">
+                    <div class="question-header">
+                        <span class="q-number" id="qNum">Билет 1 · Вопрос 1 / 20</span>
+                        <div class="timer-wrap" id="timerWrap">
+                            <span>⏱</span> <span id="timerDisplay">40</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                    <div class="question-image" id="questionImage"></div>
+                    <div class="question-text" id="qText">Загрузка вопроса...</div>
+                    <div class="options" id="optionsContainer"></div>
+                    <div class="comment-wrapper hidden" id="commentWrapper">
+                        <div class="comment-avatar" id="commentAvatar"><img src="" alt="Персонаж" /></div>
+                        <div class="comment-bubble">
+                            <span class="who" id="commentWho">Персонаж</span>
+                            <span class="text" id="commentText">Комментарий...</span>
+                        </div>
+                    </div>
+                    <div class="btn-row">
+                        <button id="nextBtn" class="hidden">Следующий вопрос →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="resultScreen" class="hidden">
+            <div style="text-align:center; margin-bottom:2px;">🏁 Результат</div>
+            <div class="result-score" id="resultScore">0/20</div>
+            <div class="result-msg" id="resultMsg">Отличный результат!</div>
+            <div id="resultErrors" class="error-list"></div>
+            <div class="btn-row">
+                <button id="retryBtn">🔄 Этот же билет</button>
+                <button id="menuBtn" class="secondary">🏠 К билетам</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        //  БИЛЕТЫ (только 2 полных для примера, остальные генерируются)
+        //  В реальном проекте замени на все 40
+        // ============================================================
+        const ALL_TICKETS = [];
+        const ticket1 = [
+            { "title": "Вопрос 1", "image": "./images/no_image.jpg", "question": "В каком случае водитель совершит вынужденную остановку?", "answers": [{ "answer_text": "Остановившись непосредственно перед пешеходным переходом, чтобы уступить дорогу пешеходу", "is_correct": false }, { "answer_text": "Остановившись на проезжей части из-за технической неисправности транспортного средства", "is_correct": true }, { "answer_text": "В обоих перечисленных случаях", "is_correct": false }], "answer_tip": "«Вынужденная остановка» - прекращение движения транспортного средства..." },
+            { "title": "Вопрос 2", "image": "./images/A_B/19601bf8458507c77d5b9882271cff59.jpg", "question": "Разрешен ли Вам поворот на дорогу с грунтовым покрытием?", "answers": [{ "answer_text": "Разрешен", "is_correct": true }, { "answer_text": "Разрешен только при технической неисправности", "is_correct": false }, { "answer_text": "Запрещен", "is_correct": false }], "answer_tip": "Впереди по ходу Вашего движения предупреждающий знак..." },
+            { "title": "Вопрос 3", "image": "./images/A_B/1b1cd20fa4a45fa5099f061364d4042d.jpg", "question": "Можно ли Вам остановиться в указанном месте для посадки пассажира?", "answers": [{ "answer_text": "Можно", "is_correct": true }, { "answer_text": "Можно, если Вы управляете такси", "is_correct": false }, { "answer_text": "Нельзя", "is_correct": false }], "answer_tip": "Знак 3.28 «Стоянка запрещена» не запрещает производить остановку." },
+            { "title": "Вопрос 4", "image": "./images/A_B/09da10ebf10786827a9a35d8f7640841.jpg", "question": "Какие из указанных знаков запрещают движение водителям мопедов?", "answers": [{ "answer_text": "Только А", "is_correct": false }, { "answer_text": "Только Б", "is_correct": false }, { "answer_text": "В и Г", "is_correct": false }, { "answer_text": "Все", "is_correct": true }], "answer_tip": "Запрещают движение водителям мопедов все знаки из перечисленных..." },
+            { "title": "Вопрос 5", "image": "./images/A_B/d146962a7d1e38cf7572e256710a9bf8.jpg", "question": "Вы намерены повернуть налево. Где следует остановиться, чтобы уступить дорогу легковому автомобилю?", "answers": [{ "answer_text": "Перед знаком", "is_correct": false }, { "answer_text": "Перед перекрестком у линии разметки", "is_correct": true }, { "answer_text": "На перекрестке перед прерывистой линией разметки", "is_correct": false }, { "answer_text": "В любом месте по усмотрению водителя", "is_correct": false }], "answer_tip": "Согласно знаку 2.4 «Уступите дорогу» водители должны пропускать транспорт..." },
+            { "title": "Вопрос 6", "image": "./images/no_image.jpg", "question": "Что означает мигание зелёного сигнала светофора?", "answers": [{ "answer_text": "Предупреждает о неисправности светофора", "is_correct": false }, { "answer_text": "Разрешает движение и информирует о том, что вскоре будет включен запрещающий сигнал", "is_correct": true }, { "answer_text": "Запрещает дальнейшее движение", "is_correct": false }], "answer_tip": "Длительность мигания зелёного сигнала светофора обычно составляет 3-4 с..." },
+            { "title": "Вопрос 7", "image": "./images/no_image.jpg", "question": "Водитель обязан подавать сигналы световыми указателями поворота (рукой):", "answers": [{ "answer_text": "Перед началом движения или перестроением", "is_correct": false }, { "answer_text": "Перед поворотом или разворотом", "is_correct": false }, { "answer_text": "Перед остановкой", "is_correct": false }, { "answer_text": "Во всех перечисленных случаях", "is_correct": true }], "answer_tip": "Перед началом движения, перестроением, поворотом (разворотом) и остановкой водитель обязан подавать сигналы..." },
+            { "title": "Вопрос 8", "image": "./images/A_B/88c67278a384a1480c233064b422753d.jpg", "question": "Как Вам следует поступить при повороте направо?", "answers": [{ "answer_text": "Перестроиться на правую полосу, затем осуществить поворот", "is_correct": false }, { "answer_text": "Продолжить движение по второй полосе до перекрёстка, затем повернуть", "is_correct": false }, { "answer_text": "Возможны оба варианта действий", "is_correct": true }], "answer_tip": "Разметка разрешает поворот направо с обеих полос..." },
+            { "title": "Вопрос 9", "image": "./images/A_B/c0f5b66440bbbb5ef724b14a3e98d98a.jpg", "question": "По какой траектории Вам разрешено выполнить разворот?", "answers": [{ "answer_text": "Только по А", "is_correct": true }, { "answer_text": "Только по Б", "is_correct": false }, { "answer_text": "По любой из указанных", "is_correct": false }], "answer_tip": "Выезд с пересечения проезжих частей должен быть выполнен на «свою» сторону..." },
+            { "title": "Вопрос 10", "image": "./images/A_B/d85e7a4a000191be7237c9fcb789f69f.jpg", "question": "С какой скоростью Вы можете продолжить движение вне населённого пункта по левой полосе на легковом автомобиле?", "answers": [{ "answer_text": "Не более 50 км/ч", "is_correct": false }, { "answer_text": "Не менее 50 км/ч и не более 70 км/ч", "is_correct": false }, { "answer_text": "Не менее 50 км/ч и не более 90 км/ч", "is_correct": true }], "answer_tip": "Над левой полосой висит знак 4.6 «Ограничение минимальной скорости»..." },
+            { "title": "Вопрос 11", "image": "./images/A_B/73dcec414fccf63cc99b96ad9c3ad895.jpg", "question": "Можно ли водителю легкового автомобиля выполнить опережение грузовых автомобилей вне населенного пункта по такой траектории?", "answers": [{ "answer_text": "Можно", "is_correct": true }, { "answer_text": "Можно, если скорость грузовых автомобилей менее 30 км/ч", "is_correct": false }, { "answer_text": "Нельзя", "is_correct": false }], "answer_tip": "На дорогах с двусторонним движением, имеющих четыре и более полос..." },
+            { "title": "Вопрос 12", "image": "./images/A_B/ce77e7dcc025bc41d6e24751ec7ef7d5.jpg", "question": "В каком случае водителю разрешается поставить автомобиль на стоянку в указанном месте?", "answers": [{ "answer_text": "Только если расстояние до сплошной линии разметки не менее 3 м", "is_correct": false }, { "answer_text": "Только если расстояние до края пересекаемой проезжей части не менее 5 м", "is_correct": false }, { "answer_text": "При соблюдении обоих перечисленных условий", "is_correct": true }], "answer_tip": "Водитель не нарушает правила остановки и стоянки..." },
+            { "title": "Вопрос 13", "image": "./images/A_B/bff3faee02ab8375f4b5afac29d5af0c.jpg", "question": "При повороте направо Вы должны уступить дорогу:", "answers": [{ "answer_text": "Только велосипедисту", "is_correct": false }, { "answer_text": "Только пешеходам", "is_correct": false }, { "answer_text": "Пешеходам и велосипедисту", "is_correct": true }, { "answer_text": "Никому", "is_correct": false }], "answer_tip": "При повороте направо или налево водитель обязан уступить дорогу пешеходам..." },
+            { "title": "Вопрос 14", "image": "./images/A_B/2516248f3febbd86ddd4c110f8ee6278.jpg", "question": "Вы намерены проехать перекресток в прямом направлении. Кому Вы должны уступить дорогу?", "answers": [{ "answer_text": "Обоим трамваям", "is_correct": true }, { "answer_text": "Только трамваю А", "is_correct": false }, { "answer_text": "Только трамваю Б", "is_correct": false }, { "answer_text": "Никому", "is_correct": false }], "answer_tip": "Перекрёсток равнозначный. Трамваи в равнозначных условиях имеют преимущество..." },
+            { "title": "Вопрос 15", "image": "./images/A_B/d7c78352991d85f5f085f3928555c2db.jpg", "question": "Кому Вы обязаны уступить дорогу при повороте налево?", "answers": [{ "answer_text": "Только автобусу", "is_correct": false }, { "answer_text": "Только легковому автомобилю", "is_correct": false }, { "answer_text": "Никому", "is_correct": true }], "answer_tip": "Перекрёсток неравнозначный. Главная дорога меняет направление..." },
+            { "title": "Вопрос 16", "image": "./images/A_B/f5ca6643a552a6d9be297bf3b319f853.jpg", "question": "С какой максимальной скоростью можно продолжить движение за знаком?", "answers": [{ "answer_text": "60 км/ч", "is_correct": false }, { "answer_text": "50 км/ч", "is_correct": false }, { "answer_text": "30 км/ч", "is_correct": false }, { "answer_text": "20 км/ч", "is_correct": true }], "answer_tip": "В жилой зоне, согласно знаку, в которую Вы въезжаете, разрешается движение со скоростью не более 20 км/ч." },
+            { "title": "Вопрос 17", "image": "./images/no_image.jpg", "question": "Для перевозки людей на мотоцикле водитель должен иметь водительское удостоверение на право управления транспортными средствами:", "answers": [{ "answer_text": "Категории «A» или подкатегории «A1»", "is_correct": false }, { "answer_text": "Любой категории или подкатегории в течение 2 и более лет", "is_correct": false }, { "answer_text": "Только категории «A» или подкатегории «A1» в течение 2 и более лет", "is_correct": true }], "answer_tip": "Перевозка людей на мотоцикле должна осуществляться водителем..." },
+            { "title": "Вопрос 18", "image": "./images/no_image.jpg", "question": "При какой неисправности разрешается эксплуатация транспортного средства?", "answers": [{ "answer_text": "Не работают запорные устройства топливных баков", "is_correct": false }, { "answer_text": "Не работают механизм регулировки и фиксирующее устройство сиденья водителя", "is_correct": false }, { "answer_text": "Не работает устройство обдува ветрового стекла", "is_correct": false }, { "answer_text": "Не работает стеклоподъемник", "is_correct": true }], "answer_tip": "Перечисленные в ответах неисправности, за исключением неработающего стеклоподъёмника..." },
+            { "title": "Вопрос 19", "image": "./images/no_image.jpg", "question": "В случае, когда правые колёса автомобиля наезжают на неукреплённую влажную обочину, рекомендуется:", "answers": [{ "answer_text": "Затормозить и полностью остановиться", "is_correct": false }, { "answer_text": "Затормозить и плавно направить автомобиль на проезжую часть", "is_correct": false }, { "answer_text": "Не прибегая к торможению, плавно направить автомобиль на проезжую часть", "is_correct": true }], "answer_tip": "Такая ситуация опасна вследствие возникновения момента сил..." },
+            { "title": "Вопрос 20", "image": "./images/no_image.jpg", "question": "Что понимается под временем реакции водителя?", "answers": [{ "answer_text": "Время с момента обнаружения водителем опасности до полной остановки транспортного средства", "is_correct": false }, { "answer_text": "Время с момента обнаружения водителем опасности до начала принятия мер по её избежанию", "is_correct": true }, { "answer_text": "Время, необходимое для переноса ноги с педали управления подачи топлива на педаль тормоза", "is_correct": false }], "answer_tip": "Под временем реакции водителя понимается время с момента обнаружения водителем опасности..." }
+        ];
+        const ticket2 = [
+            { "title": "Вопрос 1", "image": "./images/A_B/2f4527c7c81ab8b6fb653f610e2048d5.jpg", "question": "Сколько полос для движения имеет данная дорога?", "answers": [{ "answer_text": "Две", "is_correct": false }, { "answer_text": "Четыре", "is_correct": true }, { "answer_text": "Пять", "is_correct": false }], "answer_tip": "Разделительная полоса делит дорогу на проезжие части." },
+            { "title": "Вопрос 2", "image": "./images/A_B/62120b92eee47f0f7f93a4a0e6b511db.jpg", "question": "Можно ли Вам въехать на мост первым?", "answers": [{ "answer_text": "Можно", "is_correct": true }, { "answer_text": "Можно, если Вы не затрудните движение встречному автомобилю", "is_correct": false }, { "answer_text": "Нельзя", "is_correct": false }], "answer_tip": "Знак 2.7 «Преимущество перед встречным движением» предоставляет Вам право первым проехать через узкий участок дороги." },
+            { "title": "Вопрос 3", "image": "./images/A_B/50c2c2643d3cb55e84c8d935d5341641.jpg", "question": "Разрешено ли Вам произвести остановку для посадки пассажира?", "answers": [{ "answer_text": "Разрешено", "is_correct": true }, { "answer_text": "Разрешено только по чётным числам месяца", "is_correct": false }, { "answer_text": "Разрешено только по нечётным числам месяца", "is_correct": false }, { "answer_text": "Запрещено", "is_correct": false }], "answer_tip": "Знак 3.29 «Стоянка запрещена по нечётным числам месяца» ограничивает только стоянку." },
+            { "title": "Вопрос 4", "image": "./images/A_B/b778004a4a07aa59a8b820f4cfefb715.jpg", "question": "Что запрещено в зоне действия этого знака?", "answers": [{ "answer_text": "Движение любых транспортных средств", "is_correct": false }, { "answer_text": "Движение всех транспортных средств со скоростью не более 20 км/ч", "is_correct": false }, { "answer_text": "Движение механических транспортных средств", "is_correct": true }], "answer_tip": "Знак 5.33 «Пешеходная зона» обозначает место, с которого начинается территория..." },
+            { "title": "Вопрос 5", "image": "./images/A_B/bd96a6a5f556fdb9dc8deda5d2ed91d2.jpg", "question": "Разрешен ли Вам выезд на полосу с реверсивным движением, если реверсивный светофор выключен?", "answers": [{ "answer_text": "Разрешен", "is_correct": false }, { "answer_text": "Разрешен, если скорость автобуса менее 30 км/ч", "is_correct": false }, { "answer_text": "Запрещен", "is_correct": true }], "answer_tip": "При выключенных сигналах реверсивного светофора, который расположен над полосой..." },
+            { "title": "Вопрос 6", "image": "./images/A_B/3204448b33920d56f0bb20f8c93c7602.jpg", "question": "Информационная световая секция в виде силуэта пешехода и стрелки с мигающим сигналом бело-лунного цвета, расположенная под светофором, информирует водителя о том, что:", "answers": [{ "answer_text": "На пешеходном переходе, в направлении которого он поворачивает, включен сигнал светофора, разрешающий движение пешеходам", "is_correct": true }, { "answer_text": "На пешеходном переходе, в направлении которого он поворачивает, включен сигнал светофора, запрещающий движение пешеходам", "is_correct": false }, { "answer_text": "Он поворачивает в направлении пешеходного перехода", "is_correct": false }], "answer_tip": "Информационная световая секция в виде силуэта пешехода и стрелки..." },
+            { "title": "Вопрос 7", "image": "./images/A_B/056bd384dd8c5cc7d62ca9efb5b3635d.jpg", "question": "Поднятая вверх рука водителя легкового автомобиля является сигналом, информирующим Вас о его намерении:", "answers": [{ "answer_text": "Повернуть направо", "is_correct": false }, { "answer_text": "Продолжить движение прямо", "is_correct": false }, { "answer_text": "Снизить скорость, чтобы остановиться и уступить дорогу мотоциклу", "is_correct": true }], "answer_tip": "У водителя не работает световая сигнализация, поэтому он вынужден подавать соответствующие сигналы рукой." },
+            { "title": "Вопрос 8", "image": "./images/A_B/7b0c61a7cd4860ebbf1505764eacdddf.jpg", "question": "Двигаясь по левой полосе, водитель намерен перестроиться на правую. На каком из рисунков показана ситуация, в которой он обязан уступить дорогу?", "answers": [{ "answer_text": "На левом", "is_correct": false }, { "answer_text": "На правом", "is_correct": false }, { "answer_text": "На обоих", "is_correct": true }], "answer_tip": "На левом рисунке преимущество у автомобиля, двигающегося попутно по полосе..." },
+            { "title": "Вопрос 9", "image": "./images/A_B/ad7a2c5003f9650296f28a6113d987e2.jpg", "question": "Можно ли Вам выполнить разворот в этом месте?", "answers": [{ "answer_text": "Можно", "is_correct": true }, { "answer_text": "Можно только при отсутствии приближающегося поезда", "is_correct": false }, { "answer_text": "Нельзя", "is_correct": false }], "answer_tip": "Разворот запрещён на железнодорожном переезде, границами которого являются шлагбаумы..." },
+            { "title": "Вопрос 10", "image": "./images/no_image.jpg", "question": "В каких случаях разрешается наезжать на прерывистые линии разметки, разделяющие проезжую часть на полосы движения?", "answers": [{ "answer_text": "Только если на дороге нет других транспортных средств", "is_correct": false }, { "answer_text": "Только при движении в темное время суток", "is_correct": false }, { "answer_text": "Только при перестроении", "is_correct": true }, { "answer_text": "Во всех перечисленных случаях", "is_correct": false }], "answer_tip": "Наезжать на прерывистые линии разметки разрешается лишь при перестроении." },
+            { "title": "Вопрос 11", "image": "./images/A_B/ce4c3f12105972df6afa34c3fe195cce.jpg", "question": "Разрешено ли Вам обогнать мотоцикл?", "answers": [{ "answer_text": "Разрешено", "is_correct": false }, { "answer_text": "Разрешено, если водитель мотоцикла снизил скорость", "is_correct": false }, { "answer_text": "Запрещено", "is_correct": true }], "answer_tip": "Перекресток равнозначный. На равнозначных перекрёстках обгон запрещён всех видов транспорта." },
+            { "title": "Вопрос 12", "image": "./images/A_B/e3c1380d39f5b919f5b08dbc2f84b99a.jpg", "question": "Разрешается ли Вам остановиться в указанном месте?", "answers": [{ "answer_text": "Разрешается", "is_correct": false }, { "answer_text": "Разрешается, если автомобиль будет находиться не ближе 5 м от края пересекаемой проезжей части", "is_correct": true }, { "answer_text": "Запрещается", "is_correct": false }], "answer_tip": "На перекрёстке с круговым движением Вы можете совершить остановку и стоянку..." },
+            { "title": "Вопрос 13", "image": "./images/A_B/ca189392fa0cc995b8577f98759c0d37.jpg", "question": "Вы намерены повернуть налево. Кому Вы должны уступить дорогу?", "answers": [{ "answer_text": "Только пешеходам", "is_correct": false }, { "answer_text": "Только автобусу", "is_correct": false }, { "answer_text": "Автобусу и пешеходам", "is_correct": true }], "answer_tip": "Перекрёсток регулируемый. Знаки приоритета «не работают»." },
+            { "title": "Вопрос 14", "image": "./images/A_B/95bf8fd71b886d7d91a86034d6fc0127.jpg", "question": "В каком случае Вы имеете преимущество?", "answers": [{ "answer_text": "Только при повороте направо", "is_correct": false }, { "answer_text": "Только при повороте налево", "is_correct": false }, { "answer_text": "В обоих перечисленных случаях", "is_correct": true }], "answer_tip": "Перекресток равнозначный. Водители между собой руководствуются «правилом правой руки»." },
+            { "title": "Вопрос 15", "image": "./images/A_B/57811bd8a072d3384e72c8f6d41c5ae6.jpg", "question": "Обязан ли водитель мотоцикла уступить Вам дорогу?", "answers": [{ "answer_text": "Обязан", "is_correct": true }, { "answer_text": "Не обязан", "is_correct": false }], "answer_tip": "Мотоциклист выезжает на дорогу, обозначенную знаком 5.1 «Автомагистраль»..." },
+            { "title": "Вопрос 16", "image": "./images/A_B/93ed874db92e063f72ab89cbac66a6e3.jpg", "question": "Разрешается ли водителю выполнить объезд грузового автомобиля?", "answers": [{ "answer_text": "Разрешается", "is_correct": false }, { "answer_text": "Разрешается, если между шлагбаумом и остановившимся грузовым автомобилем расстояние более 5 м", "is_correct": false }, { "answer_text": "Запрещается", "is_correct": true }], "answer_tip": "Водитель легкового автомобиля хочет объехать стоящий перед закрытым шлагбаумом грузовик." },
+            { "title": "Вопрос 17", "image": "./images/no_image.jpg", "question": "В каких из перечисленных случаев запрещена буксировка на гибкой сцепке?", "answers": [{ "answer_text": "Только на горных дорогах", "is_correct": false }, { "answer_text": "Только в гололедицу", "is_correct": true }, { "answer_text": "Только в тёмное время суток и в условиях недостаточной видимости", "is_correct": false }, { "answer_text": "Во всех перечисленных случаях", "is_correct": false }], "answer_tip": "Запомните этот ответ. На экзамене часто отвечают, что только на горных дорогах." },
+            { "title": "Вопрос 18", "image": "./images/no_image.jpg", "question": "Запрещается эксплуатация мототранспортных средств (категории L), если остаточная глубина рисунка протектора шин (при отсутствии индикаторов износа) составляет не более:", "answers": [{ "answer_text": "0,8 мм", "is_correct": true }, { "answer_text": "1,0 мм", "is_correct": false }, { "answer_text": "1,6 мм", "is_correct": false }, { "answer_text": "2,0 мм", "is_correct": false }], "answer_tip": "Для мототранспортных средств, относящихся к ТС категорий L..." },
+            { "title": "Вопрос 19", "image": "./images/no_image.jpg", "question": "Исключает ли антиблокировочная тормозная система возможность возникновения заноса или сноса при прохождении поворота?", "answers": [{ "answer_text": "Полностью исключает возможность возникновения только заноса", "is_correct": false }, { "answer_text": "Полностью исключает возможность возникновения только сноса", "is_correct": false }, { "answer_text": "Не исключает возможность возникновения сноса или заноса", "is_correct": true }], "answer_tip": "Антиблокировочные системы (АБС) автомобилей представляют собой системы..." },
+            { "title": "Вопрос 20", "image": "./images/no_image.jpg", "question": "В каких случаях следует начинать сердечно-легочную реанимацию пострадавшего?", "answers": [{ "answer_text": "При наличии болей в области сердца и затрудненного дыхания", "is_correct": false }, { "answer_text": "При отсутствии у пострадавшего сознания, независимо от наличия дыхания", "is_correct": false }, { "answer_text": "При отсутствии у пострадавшего сознания, дыхания и кровообращения", "is_correct": true }], "answer_tip": "В комментариях ответов по медицинским вопросам для лучшего запоминания правильного ответа используется прием «ключевых слов»." }
+        ];
+
+        ALL_TICKETS.push(ticket1);
+        ALL_TICKETS.push(ticket2);
+        for (let i = 2; i < 40; i++) {
+            const clone = JSON.parse(JSON.stringify(ticket1));
+            clone.forEach(q => { q.title = q.title.replace('Вопрос', `Вопрос ${i+1}`); });
+            ALL_TICKETS.push(clone);
+        }
+
+        // ============================================================
+        //  ПЕРСОНАЖИ
+        // ============================================================
+        const CHARACTERS = {
+            vasya: {
+                id: 'vasya',
+                name: 'Дядя Вася',
+                desc: 'Тракторист, добрый-ворчливый',
+                theme: 'theme-vasya',
+                images: {
+                    stand: 'https://i.ibb.co/nMczSb6D/vasya-stand.png',
+                    selected: 'https://i.ibb.co/wN1HP7m2/vasya-selected.png',
+                    wait: 'https://i.ibb.co/qLFpvz13/vasya-wait.png',
+                    happy: 'https://i.ibb.co/gMcKBdyb/vasya-happy.png',
+                    angry: 'https://i.ibb.co/21mj7C8n/vasya-angry.png'
+                },
+                welcomePhrase: 'Укуси меня пчела! Итак, дел много, еще и тебя не хватало... Ну, заводи, что ли.',
+                correctPhrases: ['Ну, молодец! Прям как я в молодости!', 'Ого! А я и сам такого не знал. Уважаю!',
+                    'Батя будет доволен! Так держать, сынок!', 'Ну ты даешь! Прям профессор! Ай да молодец!',
+                    'Правильно, правильно! Видно, что голова на месте.', 'На тебя глядя, и мне жить легче стало! Растет смена!',
+                    'Ё-моё! Да ты шаришь! Прям как за руль сел!', 'Красава! Сразу видно, мужик соображает, что к чему.',
+                    'Ай, молодец! Не зря я с тобой связался. Порадовал старика!', 'Ну вот, теперь я спокоен. Знаешь правила!',
+                    'Молодец! Гляжу, ты не лыком шит. Одобряю!', 'Прям как по маслу! Всё чётко, без дураков.',
+                    'Слышь, а может, ты на трактор пересядешь? С такой головой и жить, и пахать!',
+                    'Браво! Я аж прослезился от радости. Ну, ты даешь!',
+                    'Учись, учись! А я пока на твои ответы погляжу, сам кое-что вспомню.',
+                    'Ну ты голова! Прям эрудит. Уважил старика!',
+                    'Золотой ты мой! С такими знаниями и в президенты можно!',
+                    'Правильно! Главное - не спешить и думать. А ты умеешь!',
+                    'Вот это поворот! Я даже засомневался, а ты - бац, и верно!',
+                    'Так и надо! Спокойствие и еще раз спокойствие. Ты молоток!'
+                ],
+                wrongPhrases: ['Эх, балбес! Ну куда ты лезешь? Ты правила-то хоть раз открывал?',
+                    'Ё-моё! Ну ты даешь! Совсем голову потерял? Запоминай давай!',
+                    'Ну что за напасть! Опять двадцать пять. Я ж тебя учил!',
+                    'Твою ж дивизию! Ну ты и отмочил! Давай, запоминай, чтоб потом не плакал!',
+                    'Эх, горе ты моё луковое! Трактор бы тебе не доверил. Учи матчасть!',
+                    'Слушай сюда, балбес! Запоминай раз и навсегда! А то права как свои уши не увидишь.',
+                    'Стыдоба! Ты хоть знаешь, что такое тормозной путь? Нет? То-то!',
+                    'Ну ты и кадр! Эк тебя угораздило! Давай, выпрямляй извилины!',
+                    'Куда прёшь?! Там же знак! Запомни, это не шутки. Головой думай!',
+                    'Честное слово, выпорол бы ремнем, как в старые времена! Запоминай!',
+                    'Эх, а я было обрадовался... Ну ты и разочаровал. Давай, колись, где учился?',
+                    'Ну ты даёшь! Шофер из тебя как из меня балерина. Учись, пока я жив!',
+                    'Не гони, торопыга! Включай голову! А то с таким подходом и трактор разобьешь.',
+                    'Ё-моё! Ты чего это? Это ж элементарно! Запоминай и не ошибись больше!',
+                    'В тракторе проще - педаль нажал и поехал. А тут вон оно как. Учи, балбес!',
+                    'Ну, давай, давай, удивляй меня дальше! А я пока буду головой качать.',
+                    'Совсем страх потерял? Правила надо знать! Читай, пока время есть!',
+                    'Тьфу ты! Ну и насмешил. Запоминай давай, чтобы в следующий раз не облажаться.',
+                    'Эх, горе! Не тракторист ты, а горе-горемыка. Садись, два!',
+                    'Я тебе говорю, учи правила, а ты... Эх, ё-моё!'
+                ],
+                finalGood: 'Ну, молодец! Справился. Не зря я с тобой мучился. Езжай давай, только аккуратней!',
+                finalMid: 'Нормально, но есть над чем работать. Подтяни правила, балбес!',
+                finalBad: 'Эх, ё-моё... Ну ты и даёшь! Заново учить придётся. Садись, два!'
+            },
+            allochka: {
+                id: 'allochka',
+                name: 'Аллочка',
+                desc: 'Автолюбительница ласковая',
+                theme: 'theme-allochka',
+                images: {
+                    stand: 'https://i.ibb.co/b5nBhdys/alla-stand.png',
+                    selected: 'https://i.ibb.co/DD0nL8sh/alla-selected.png',
+                    wait: 'https://i.ibb.co/dwXw3FXq/alla-wait.png',
+                    happy: 'https://i.ibb.co/9mjv5SG7/alla-happy.png',
+                    angry: 'https://i.ibb.co/Q7TLJ7QT/alla-angry.png'
+                },
+                welcomePhrase: 'Главное — не перепутать поворотники, масик! А то я буду ждать тебя на обочине с цветочками.',
+                correctPhrases: ['Масик, ты просто гений! Ого! Я и сама не знала! Ты меня будоражишь!',
+                    'Ах, зайка! Ты такой умный! Я прямо горжусь тобой!',
+                    'Солнышко, ну ты ваще! Удивил! Так держать, мой хороший!',
+                    'Кисуля, ты в шоке меня держишь! Откуда ты все это знаешь?',
+                    'Ах, масик, ну молодец! Я бы сама так не ответила!',
+                    'Прямо экзамен сдаешь на пять с плюсом! Я в тебя верю, зайка!',
+                    'Ой, какой ты у меня способный! Я аж покраснела от удовольствия!',
+                    'Ну все, масик, я в твоей команде! Ты просто супер!',
+                    'Браво, мой хороший! Еще немного, и я поеду с тобой куда угодно!',
+                    'Солнышко, я в шоке! Ты знаешь больше меня! Это очень приятно!',
+                    'Ах, кисуля, ну ты и умница! Прям как настоящий гонщик, только с головой!',
+                    'Я аж зауважала тебя! Масик, ты мой герой!', 'Зайка, я горжусь! Ну, давай еще! Ты меня заряжаешь!',
+                    'Ой, масик, ну ты меня порадовал! Я аж подпрыгнула от счастья!',
+                    'Ты просто клад! Сокровище мое! С такими знаниями и прав не надо, я сама тебя повезу!',
+                    'Ай-яй-яй, какой ты молодец! Я аж засмущалась от такой эрудиции!',
+                    'Ну, масик, ты меня удивил! Прям как Эйнштейн на дороге!',
+                    'Кисуля, я тобой горжусь! Это лучший ответ за сегодня!',
+                    'Солнышко, ты меня вдохновляешь! Так и быть, поехали на море!',
+                    'Ах, масик, ну ты ваще! Я просто в восторге от твоих познаний!'
+                ],
+                wrongPhrases: ['Масик, ну что же ты... Ай-яй-яй! А как же правила?',
+                    'Зайка, ну ты чего? Я же в тебя верила! Это не страшно, давай запомним!',
+                    'Ой, солнышко, ну ты и выдал! Ты меня расстроил, конечно, но мы все исправим!',
+                    'Кисуля, это перебор! Ну как ты собрался меня катать на своей машинке без прав?',
+                    'Ах, масик... Ну ты даешь! Масик заплатит штраф, если так дальше пойдет!',
+                    'Зайка, ну это же элементарно! Как ты мог? Расстраиваешь ты меня!',
+                    'Ай-яй-яй, солнышко! Ну ты меня огорчил! Давай учить, пока не поздно!',
+                    'Масик, ну ты чего? Я же переживаю! Ты же на дороге, а не на дискотеке!',
+                    'Ой, зайка... Ну ладно, ошибочка вышла. В следующий раз будь внимательней, мой хороший!',
+                    'Кисуля, ну ты меня пугаешь! Я без тебя никуда! Учи правила, пожалуйста!',
+                    'Ну, масик, я в шоке! Это ж надо было так ляпнуть! Не расстраивайся, но запомни!',
+                    'Солнышко, ну ты и чудо! С таким подходом мы далеко не уедем. Давай исправляться!',
+                    'Ах, масик... Ну ты меня прям ударил! Ты же умный, чего ж ты?',
+                    'Зайка, не гони лошадей! Правила учи, а то я тебя одного не отпущу!',
+                    'Ой, кисуля, ну ты меня напугал! Я думала, у тебя все схвачено! Давай подтягивай!',
+                    'Ну и ну, масик! Я аж расстроилась! Но мы это исправим, правда?',
+                    'Солнышко, я тебя люблю, но ответ неверный! Давай, не подводи меня больше!',
+                    'Ай-яй-яй, зайка! Ты меня заставляешь нервничать! Пошли учить!',
+                    'Масик, я конечно понимаю, все ошибаются, но это же ПДД! Ты меня пугаешь!',
+                    'Кисуля, ну что за дела! Я в тебя верила! Давай, соберись, ты можешь!'
+                ],
+                finalGood: 'Масик, ты просто умница! Я так тобой горжусь! Ты настоящий автолюбитель! 🥰',
+                finalMid: 'Нормально, зайка, но можно лучше! Подтяни правила, солнышко!',
+                finalBad: 'Масик, ну ты что... Давай ещё разок, я помогу тебе! Не сдавайся!'
+            },
+            boris: {
+                id: 'boris',
+                name: 'Инспектор Борис',
+                desc: 'Вредный инспектор ГАИ',
+                theme: 'theme-boris',
+                images: {
+                    stand: 'https://i.ibb.co/99qC3VTS/inspector-stand.png',
+                    selected: 'https://i.ibb.co/wFNjh7yR/inspector-selected.png',
+                    wait: 'https://i.ibb.co/QwtszyZ/inspector-wait.png',
+                    happy: 'https://i.ibb.co/S7x0cx31/inspector-happy.png',
+                    angry: 'https://i.ibb.co/d0Z9Cqg6/inspector-angry.png'
+                },
+                welcomePhrase: 'Поздравляю! Вам достался самый коварный инспектор! Готовьтесь провалиться! Я найду, к чему придраться!',
+                correctPhrases: ['Хм... Правильно. Чёрт возьми! Но в следующий раз я тебя поймаю!',
+                    'Фу-ты, ну-ты... И это правильно. Я в шоке.', 'Случайность! Ты просто угадал. Я этого так не оставлю!',
+                    'Досадно... Ну ничего, у меня для тебя припасен еще вопросик!',
+                    'Запомни этот день! Ты ответил верно. Но я буду следить за тобой.',
+                    'Пф... Ладно, правильный. Но я найду, где ты ошибешься!',
+                    'Не расслабляйся! Это была разминка. Основные вопросы впереди.',
+                    'Ты меня заинтриговал... Но я все равно тебя завалю!',
+                    'Совпадение! Ты не можешь знать все. Готовься к провалу!',
+                    'Ну надо же... Верно. Но осадочек остался. Я запомню.',
+                    'И это ты называешь знанием? Ладно, проехали. Но я своего добьюсь!',
+                    'Мне это не нравится. Ты слишком хорошо отвечаешь. Я должен тебя проверить!',
+                    'Правильно... Но ты все равно не сдашь экзамен! Я сделаю все, чтобы ты провалился!',
+                    'Занятно... Ты знаешь правила. Но знаешь ли ты, что такое дисциплина?',
+                    'Хм, я разочарован. Я ожидал ошибки. В следующий раз не надейся!',
+                    'Ты играешь с огнем, сдавая так хорошо! Я это так не оставлю.',
+                    'Не верю своим глазам! Ты ответил правильно. Но это ненадолго!',
+                    'Я чувствую подвох! Ты что, правила наизусть выучил? Ладно, посмотрим.',
+                    'Досадная оплошность с моей стороны... Ты оказался прав. Но я тебя дожму!',
+                    'Хорошо... Очень хорошо. Ты меня заинтересовал. Но экзамен я тебе не сдам!'
+                ],
+                wrongPhrases: ['Ага! Попался! Я так и знал! Это же элементарно! Заваливайся!',
+                    'Балбес! Ну кто же так делает? На вождении обязательно поедем по такому маршруту!',
+                    'Ошибка! Какой позор! Я бы после этой ошибки точно не дал тебе прав!',
+                    'В ГАИ такие, как ты, — моя любимая категория! Следующий!',
+                    'Ну-ну... Что, растерялся? А я говорил! Проваливай!',
+                    'Ха-ха! Ты серьезно? Это же было просто! Готовься к пересдаче!',
+                    'Какая досада! Ты меня разочаровал. Но я рад, что ты ошибся.',
+                    'Запомни этот вопрос, балбес! Он тебе еще аукнется на экзамене!',
+                    'Ну и ну... Я смотрю, ты совсем не готов. Садись, два!',
+                    'Провал! Ты меня радуешь! Я люблю таких учеников. Уверен, ты не сдашь!',
+                    'Это же стыдоба! Ты хоть Правила читал? Нет? То-то я и вижу!',
+                    'Еще одна ошибка, и я выгоню тебя с экзамена! Ты не достоин прав!',
+                    'Я говорил, что ты не сдашь! И вот тебе первое подтверждение!',
+                    'Ты меня восхищаешь своей безграмотностью! Продолжай в том же духе!',
+                    'Ошибка за ошибкой! Ты — мой любимый ученик! Я тебя точно завалю!',
+                    'Я бы тебе даже велосипед не доверил! А ты на машине собрался? Позор!',
+                    'Ну что, допрыгался? Я тебя предупреждал! Готовься к пересдаче!',
+                    'Ай-яй-яй, балбес! Какой же ты бестолковый! С такими знаниями и прав не видать!',
+                    'Потрясающе! Я просто в восторге от твоих ошибок! Продолжай меня радовать!',
+                    'Ты меня не переубедишь! Ты не сдашь! Я сделаю все, чтобы ты провалился!'
+                ],
+                finalGood: 'Сдал? Считай повезло. Но я к тебе присмотрюсь. Езжай, балбес.',
+                finalMid: 'Троечник. Но могло быть хуже. Учи правила, балбес!',
+                finalBad: 'Позорище! С такими знаниями даже права на велосипед не дам! Пересдавай!'
+            }
+        };
+
+        let currentChar = null;
+        let currentTicket = 0;
+        let currentQuestion = 0;
+        let score = 0;
+        let errors = [];
+        let timer = 40;
+        let timerInterval = null;
+        let answered = false;
+        let solvedTickets = JSON.parse(localStorage.getItem('pddSolved') || '[]');
+        let charStats = JSON.parse(localStorage.getItem('pddCharStats') || '{}');
+        let carouselIndex = 0;
+        let carouselItems = [];
+
+        function getChar(id) { return CHARACTERS[id]; }
+
+        function getRandomPhrase(phrases) { return phrases[Math.floor(Math.random() * phrases.length)]; }
+
+        function saveStats() {
+            localStorage.setItem('pddSolved', JSON.stringify(solvedTickets));
+            localStorage.setItem('pddCharStats', JSON.stringify(charStats));
+        }
+
+        function updateStatsDisplay() {
+            document.getElementById('statSolved').textContent = solvedTickets.length;
+            let sum = 0,
+                cnt = 0;
+            for (const t of solvedTickets) {
+                if (t.score !== undefined) { sum += t.score;
+                    cnt++; }
+            }
+            document.getElementById('statAvg').textContent = cnt > 0 ? (sum / cnt).toFixed(1) : '—';
+            let fav = '—',
+                max = 0;
+            for (const [k, v] of Object.entries(charStats)) {
+                if (v > max) { max = v;
+                    fav = getChar(k)?.name || k; }
+            }
+            document.getElementById('statChar').textContent = fav;
+        }
+
+        // Ленивая загрузка картинки к вопросу
+        function loadQuestionImage(imgElement, src) {
+            if (!imgElement || !src || src === './images/no_image.jpg') {
+                if (imgElement) imgElement.innerHTML = '';
+                return;
+            }
+            // Показываем плейсхолдер загрузки
+            imgElement.innerHTML = '<div class="loading-placeholder">🖼 Загрузка...</div>';
+
+            const img = new Image();
+            img.onload = function() {
+                imgElement.innerHTML = '';
+                imgElement.appendChild(img);
+                img.classList.add('loaded');
+                img.alt = 'Иллюстрация к вопросу';
+            };
+            img.onerror = function() {
+                imgElement.innerHTML = '<div style="color:rgba(255,255,255,0.2);font-size:0.85rem;">❌ Картинка не загружена</div>';
+            };
+            // Добавляем уникальный параметр, чтобы избежать кеширования (можно убрать при необходимости)
+            img.src = src;
+        }
+
+        function getImageUrl(path) {
+            if (!path || path === './images/no_image.jpg') return null;
+            const filename = path.replace('./images/', '');
+            return `https://raw.githubusercontent.com/etspring/pdd_russia/master/images/${filename}`;
+        }
+
+        function updateCharImage(state) {
+            const char = getChar(currentChar);
+            if (!char) return;
+            const img = document.getElementById('charImage');
+            const name = document.getElementById('charName');
+            if (img) {
+                img.src = char.images[state] || char.images.stand;
+                img.alt = char.name;
+            }
+            if (name) name.textContent = char.name;
+        }
+
+        function initCarousel() {
+            const track = document.getElementById('carouselTrack');
+            const chars = Object.values(CHARACTERS);
+            carouselItems = chars;
+            track.innerHTML = '';
+            chars.forEach((ch, index) => {
+                const div = document.createElement('div');
+                const isSelected = (currentChar === ch.id);
+                div.className = 'character-card' + (isSelected ? ' selected' : '');
+                const imgSrc = isSelected ? ch.images.selected : ch.images.stand;
+                div.innerHTML = `
+                    <div class="avatar"><img src="${imgSrc}" alt="${ch.name}" /></div>
+                    <div class="name">${ch.name}</div>
+                    <div class="desc">${ch.desc}</div>
+                `;
+                div.addEventListener('click', () => {
+                    currentChar = ch.id;
+                    alert(ch.welcomePhrase);
+                    renderMain();
+                });
+                track.appendChild(div);
+            });
+            updateCarousel();
+        }
+
+        function updateCarousel() {
+            const track = document.getElementById('carouselTrack');
+            const total = carouselItems.length;
+            const visible = window.innerWidth < 430 ? 1 : 2;
+            const maxIndex = Math.max(0, total - visible);
+            if (carouselIndex > maxIndex) carouselIndex = maxIndex;
+            if (carouselIndex < 0) carouselIndex = 0;
+            const firstCard = track.querySelector('.character-card');
+            if (!firstCard) return;
+            const cardWidth = firstCard.offsetWidth || 160;
+            const gap = 16;
+            const offset = carouselIndex * (cardWidth + gap);
+            track.style.transform = `translateX(-${offset}px)`;
+            document.getElementById('carouselPrev').classList.toggle('show', carouselIndex > 0);
+            document.getElementById('carouselNext').classList.toggle('show', carouselIndex < maxIndex);
+        }
+
+        document.getElementById('carouselPrev').addEventListener('click', () => {
+            carouselIndex--;
+            updateCarousel();
+        });
+        document.getElementById('carouselNext').addEventListener('click', () => {
+            carouselIndex++;
+            updateCarousel();
+        });
+        window.addEventListener('resize', updateCarousel);
+
+        function renderMain() {
+            const grid = document.getElementById('charGrid');
+            grid.innerHTML = '';
+            for (const [id, ch] of Object.entries(CHARACTERS)) {
+                const div = document.createElement('div');
+                const isSelected = (currentChar === id);
+                div.className = 'character-card' + (isSelected ? ' selected' : '');
+                const imgSrc = isSelected ? ch.images.selected : ch.images.stand;
+                div.innerHTML = `
+                    <div class="avatar"><img src="${imgSrc}" alt="${ch.name}" /></div>
+                    <div class="name">${ch.name}</div>
+                    <div class="desc">${ch.desc}</div>
+                `;
+                div.addEventListener('click', () => {
+                    currentChar = id;
+                    alert(ch.welcomePhrase);
+                    renderMain();
+                });
+                grid.appendChild(div);
+            }
+
+            initCarousel();
+
+            const tGrid = document.getElementById('ticketGrid');
+            tGrid.innerHTML = '';
+            for (let i = 0; i < ALL_TICKETS.length; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'ticket-btn' + (solvedTickets.some(t => t.number === i) ? ' solved' : '');
+                btn.textContent = i + 1;
+                btn.addEventListener('click', () => {
+                    if (!currentChar) { alert('Сначала выбери наставника!'); return; }
+                    startTest(i);
+                });
+                tGrid.appendChild(btn);
+            }
+
+            document.getElementById('mainScreen').classList.remove('hidden');
+            document.getElementById('testScreen').classList.add('hidden');
+            document.getElementById('resultScreen').classList.add('hidden');
+            document.getElementById('loader').classList.add('hidden');
+            updateStatsDisplay();
+            applyTheme();
+            setTimeout(updateCarousel, 100);
+        }
+
+        function applyTheme() {
+            const body = document.body;
+            body.className = '';
+            if (currentChar && CHARACTERS[currentChar]) {
+                body.classList.add(CHARACTERS[currentChar].theme);
+            }
+        }
+
+        function startTest(ticketNum) {
+            currentTicket = ticketNum;
+            currentQuestion = 0;
+            score = 0;
+            errors = [];
+            answered = false;
+            document.getElementById('mainScreen').classList.add('hidden');
+            document.getElementById('resultScreen').classList.add('hidden');
+            document.getElementById('testScreen').classList.remove('hidden');
+            updateCharImage('wait');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const ticket = ALL_TICKETS[currentTicket];
+            if (!ticket || currentQuestion >= ticket.length) { showResult(); return; }
+            const qData = ticket[currentQuestion];
+            const total = ticket.length;
+
+            document.getElementById('qNum').textContent = `Билет ${currentTicket+1} · Вопрос ${currentQuestion+1} / ${total}`;
+            document.getElementById('qText').textContent = qData.question;
+            document.getElementById('progressFill').style.width = ((currentQuestion) / total * 100) + '%';
+            document.getElementById('nextBtn').classList.add('hidden');
+            document.getElementById('commentWrapper').classList.add('hidden');
+
+            // Ленивая загрузка картинки к вопросу
+            const imgContainer = document.getElementById('questionImage');
+            const imageUrl = getImageUrl(qData.image);
+            loadQuestionImage(imgContainer, imageUrl);
+
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = '';
+            qData.answers.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = String.fromCharCode(65 + idx) + ') ' + opt.answer_text;
+                btn.addEventListener('click', () => handleAnswer(idx));
+                container.appendChild(btn);
+            });
+
+            answered = false;
+            startTimer();
+            updateCharImage('wait');
+            const avatarImg = document.querySelector('#commentAvatar img');
+            if (avatarImg && currentChar) {
+                avatarImg.src = getChar(currentChar).images.wait;
+            }
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timer = 40;
+            document.getElementById('timerDisplay').textContent = timer;
+            document.getElementById('timerWrap').classList.remove('warning');
+            timerInterval = setInterval(() => {
+                timer--;
+                document.getElementById('timerDisplay').textContent = timer;
+                if (timer <= 5) document.getElementById('timerWrap').classList.add('warning');
+                if (timer <= 0) {
+                    clearInterval(timerInterval);
+                    if (!answered) {
+                        const ticket = ALL_TICKETS[currentTicket];
+                        const qData = ticket[currentQuestion];
+                        const correctAns = qData.answers.find(a => a.is_correct)?.answer_text || 'Неизвестно';
+                        const char = getChar(currentChar);
+                        const advice = getRandomPhrase(char.wrongPhrases);
+                        errors.push({
+                            question: qData.question,
+                            correct: correctAns,
+                            userAnswer: 'Время вышло!',
+                            advice: advice
+                        });
+                        updateCharImage('angry');
+                        showComment(advice, true);
+                        const btns = document.querySelectorAll('.option-btn');
+                        btns.forEach((b, i) => {
+                            b.classList.add('disabled');
+                            if (qData.answers[i].is_correct) b.classList.add('correct');
+                        });
+                        answered = true;
+                        document.getElementById('nextBtn').classList.remove('hidden');
+                    }
+                }
+            }, 1000);
+        }
+
+        function handleAnswer(idx) {
+            if (answered) return;
+            clearInterval(timerInterval);
+            answered = true;
+
+            const ticket = ALL_TICKETS[currentTicket];
+            const qData = ticket[currentQuestion];
+            const btns = document.querySelectorAll('.option-btn');
+            btns.forEach(b => b.classList.add('disabled'));
+
+            const isCorrect = qData.answers[idx].is_correct;
+            const correctAns = qData.answers.find(a => a.is_correct)?.answer_text || 'Неизвестно';
+            const char = getChar(currentChar);
+
+            if (isCorrect) {
+                score++;
+                btns[idx].classList.add('correct');
+                const phrase = getRandomPhrase(char.correctPhrases);
+                updateCharImage('happy');
+                showComment(phrase, false);
+            } else {
+                btns[idx].classList.add('wrong');
+                btns.forEach((b, i) => {
+                    if (qData.answers[i].is_correct) b.classList.add('correct');
+                });
+                const advice = getRandomPhrase(char.wrongPhrases);
+                updateCharImage('angry');
+                errors.push({
+                    question: qData.question,
+                    correct: correctAns,
+                    userAnswer: qData.answers[idx].answer_text,
+                    advice: advice
+                });
+                showComment(advice, true);
+            }
+            document.getElementById('nextBtn').classList.remove('hidden');
+        }
+
+        function showComment(text, isError) {
+            const wrapper = document.getElementById('commentWrapper');
+            wrapper.classList.remove('hidden');
+
+            const char = getChar(currentChar);
+            const avatarImg = document.querySelector('#commentAvatar img');
+            if (avatarImg) {
+                avatarImg.src = isError ? char.images.angry : char.images.happy;
+            }
+            document.getElementById('commentWho').textContent = char.name;
+            document.getElementById('commentText').textContent = text;
+
+            const bubble = document.querySelector('.comment-bubble');
+            if (isError) {
+                bubble.style.borderColor = 'rgba(255,100,100,0.5)';
+                bubble.style.background = 'rgba(255,60,60,0.08)';
+                bubble.style.setProperty('--bubble-color', 'rgba(255,100,100,0.5)');
+            } else {
+                bubble.style.borderColor = 'rgba(100,200,100,0.5)';
+                bubble.style.background = 'rgba(60,200,60,0.08)';
+                bubble.style.setProperty('--bubble-color', 'rgba(100,200,100,0.5)');
+            }
+            const style = document.createElement('style');
+            style.textContent = `.comment-bubble::before { border-right-color: var(--bubble-color, rgba(255,255,255,0.06)); }`;
+            document.head.appendChild(style);
+            setTimeout(() => style.remove(), 200);
+        }
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            const ticket = ALL_TICKETS[currentTicket];
+            if (currentQuestion + 1 < ticket.length) {
+                currentQuestion++;
+                renderQuestion();
+            } else {
+                showResult();
+            }
+        });
+
+        function showResult() {
+            clearInterval(timerInterval);
+            document.getElementById('testScreen').classList.add('hidden');
+            document.getElementById('resultScreen').classList.remove('hidden');
+
+            const total = ALL_TICKETS[currentTicket].length;
+            document.getElementById('resultScore').textContent = `${score}/${total}`;
+
+            const char = getChar(currentChar);
+            let msg = '';
+            const pct = score / total;
+            if (pct >= 0.95) msg = char.finalGood;
+            else if (pct >= 0.7) msg = char.finalMid;
+            else msg = char.finalBad;
+            document.getElementById('resultMsg').textContent = msg;
+
+            const errDiv = document.getElementById('resultErrors');
+            errDiv.innerHTML = '';
+            if (errors.length === 0) {
+                errDiv.innerHTML = '<div style="text-align:center;opacity:0.6;">🎉 Без ошибок! Отлично!</div>';
+            } else {
+                errors.forEach(e => {
+                    const div = document.createElement('div');
+                    div.className = 'error-item';
+                    div.innerHTML = `
+                        <div class="q">❓ ${e.question}</div>
+                        <div class="your">✖ Ваш ответ: ${e.userAnswer}</div>
+                        <div class="right">✔ Правильно: ${e.correct}</div>
+                        <div class="advice">💬 ${e.advice}</div>
+                    `;
+                    errDiv.appendChild(div);
+                });
+            }
+
+            if (!solvedTickets.some(t => t.number === currentTicket)) {
+                solvedTickets.push({ number: currentTicket, score: score, total: total });
+            }
+            if (currentChar) {
+                charStats[currentChar] = (charStats[currentChar] || 0) + 1;
+            }
+            saveStats();
+            updateStatsDisplay();
+        }
+
+        document.getElementById('retryBtn').addEventListener('click', () => { startTest(currentTicket); });
+        document.getElementById('menuBtn').addEventListener('click', () => { renderMain(); });
+
+        setTimeout(() => {
+            document.getElementById('loader').classList.add('hidden');
+            renderMain();
+        }, 600);
+    </script>
+</body>
+</html>
